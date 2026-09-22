@@ -1,0 +1,122 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard, Inbox, UserCheck, Users, Building2, Kanban,
+  Activity, Sparkles, Workflow, BarChart3, BookOpen,
+  Bot, Plug, LifeBuoy, GitMerge, ShieldCheck, Megaphone
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const navItems = [
+  { group: 'MAIN PLATFORM', items: [
+    { label: 'Overview', href: '/', icon: LayoutDashboard, color: 'text-sky-600' },
+    { label: 'Inbox', href: '/inbox', icon: Inbox, badge: '3', color: 'text-indigo-600' },
+    { label: 'Leads', href: '/leads', icon: UserCheck, badge: 'AI Scored', color: 'text-emerald-600' },
+    { label: 'Contacts', href: '/contacts', icon: Users, color: 'text-purple-600' },
+    { label: 'Companies', href: '/companies', icon: Building2, color: 'text-rose-600' },
+    { label: 'Deals & Pipeline', href: '/pipeline', icon: Kanban, color: 'text-amber-600' },
+    { label: 'Support Tickets', href: '/tickets', icon: LifeBuoy, badge: 'SLA', color: 'text-rose-600' },
+    { label: 'Identity Merge', href: '/identity', icon: GitMerge, color: 'text-indigo-600' },
+    { label: 'Activities', href: '/activities', icon: Activity, color: 'text-slate-600' },
+  ]},
+  { group: 'AI & INTELLIGENCE', items: [
+    { label: 'AI Outreach Agent', href: '/outreach', icon: Megaphone, highlight: true, badge: 'Voice/Seq', color: 'text-sky-600' },
+    { label: 'AI Intelligence', href: '/intelligence', icon: Sparkles, highlight: true, color: 'text-purple-600' },
+    { label: 'AI Governance', href: '/ai-governance', icon: ShieldCheck, highlight: true, color: 'text-rose-600' },
+    { label: 'Automations', href: '/automations', icon: Workflow, color: 'text-sky-600' },
+    { label: 'Analytics', href: '/analytics', icon: BarChart3, color: 'text-emerald-600' },
+    { label: 'Knowledge (RAG)', href: '/knowledge', icon: BookOpen, color: 'text-indigo-600' },
+    { label: 'AI Assistant', href: '/assistant', icon: Bot, highlight: true, color: 'text-purple-600' },
+    { label: 'Integrations', href: '/integrations', icon: Plug, color: 'text-amber-600' },
+  ]}
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="w-64 light-glass-sidebar flex flex-col justify-between shrink-0 h-screen sticky top-0 z-40 select-none shadow-sky-glass">
+      <div>
+        {/* Brand Header */}
+        <div className="h-16 px-6 flex items-center justify-between border-b border-white/60 bg-white/40">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-vibrant-sky-gradient flex items-center justify-center font-extrabold text-white shadow-sky-glow">
+              N5
+            </div>
+            <div>
+              <span className="font-extrabold text-base tracking-wide text-slate-900 flex items-center gap-1.5">
+                NOVA5 <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-900 font-bold border border-sky-400/40">AI CRM</span>
+              </span>
+              <p className="text-[10px] text-slate-600 font-medium">Customer Intelligence Operating System</p>
+            </div>
+          </Link>
+        </div>
+
+        {/* Navigation Sections */}
+        <div className="px-3 py-4 space-y-6 overflow-y-auto max-h-[calc(100vh-120px)]">
+          {navItems.map((group, idx) => (
+            <div key={idx}>
+              <h4 className="px-3 text-[10px] font-extrabold text-slate-500 tracking-wider uppercase mb-2">
+                {group.group}
+              </h4>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive = pathname === item.href;
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group',
+                        isActive
+                          ? 'bg-gradient-to-r from-sky-500/20 to-indigo-500/15 text-sky-900 border border-sky-400/50 shadow-sm font-bold'
+                          : 'text-slate-700 hover:text-slate-950 hover:bg-white/60 border border-transparent'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon className={cn('w-4 h-4 transition-transform group-hover:scale-110', isActive ? 'text-sky-600' : item.color)} />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span className={cn(
+                          'text-[10px] px-2 py-0.5 rounded-full font-bold font-mono',
+                          item.badge === 'AI Scored'
+                            ? 'bg-sky-500/20 text-sky-800 border border-sky-400/40'
+                            : 'bg-indigo-500/20 text-indigo-800 border border-indigo-400/40'
+                        )}>
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* User Profile Footer */}
+      <div className="p-4 border-t border-white/60 bg-white/40">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <img
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
+              alt="Alex Vance"
+              className="w-9 h-9 rounded-xl object-cover ring-2 ring-sky-500/40 shadow-sm"
+            />
+            <span className="w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full absolute bottom-0 right-0"></span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h5 className="text-xs font-bold text-slate-900 truncate">Alex Vance</h5>
+            <p className="text-[11px] text-slate-600 truncate font-medium">Admin • Nova5 Org</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
