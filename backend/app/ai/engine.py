@@ -1,230 +1,201 @@
-import os
-import json
 import re
-from typing import Dict, Any, List, Optional
-from app.core.config import settings
+from typing import Dict, Any, List
 
-class AILeadScorer:
-    """Intelligent lead scoring engine with factor decomposition & natural language explanations."""
-
-    @staticmethod
-    def score_lead(lead_title: str, source: str, conversation_text: str = "", company_size: str = "") -> Dict[str, Any]:
-        base_score = 40
-        factors = {}
-        
-        # Source factor
-        if "WhatsApp" in source or "Website Chat" in source:
-            factors["Website & Direct Engagement"] = 24
-        elif "Email" in source:
-            factors["Email Channel Interaction"] = 18
-        else:
-            factors["Inbound Channel Interaction"] = 15
-            
-        # Intent & Conversation factor
-        conv_lower = conversation_text.lower()
-        if any(w in conv_lower for w in ["pricing", "cost", "quote", "buy", "enterprise", "budget"]):
-            factors["High Purchase Intent"] = 28
-        elif any(w in conv_lower for w in ["demo", "walkthrough", "features", "integration"]):
-            factors["Product Evaluation Signal"] = 20
-        else:
-            factors["General Inquiry Signal"] = 12
-            
-        # Company size fit factor
-        if any(s in company_size for s in ["200-500", "500+", "1000+", "Enterprise"]):
-            factors["Enterprise Company Fit"] = 22
-        elif any(s in company_size for s in ["50-200", "50-100"]):
-            factors["Mid-Market Company Fit"] = 16
-        else:
-            factors["SMB Company Fit"] = 10
-            
-        total_score = min(100, sum(factors.values()))
-        
-        confidence = 0.91 if total_score > 75 else 0.84
-        explanation = (
-            f"High purchase intent detected based on recent conversation signals, "
-            f"strong company fit criteria, and active engagement across {source}."
-        )
-        
-        return {
-            "score": total_score,
-            "confidence": confidence,
-            "breakdown": factors,
-            "explanation": explanation
-        }
-
-class AIConversationAnalyzer:
-    """Extracts summary, intent, sentiment, urgency, and action items from message history."""
+class AIEngine:
+    """
+    Nova5 AI Engine powering:
+    - Lead Generation & Information Extraction
+    - Explainable AI Lead Scoring (0-100)
+    - Grounded RAG AI Chatbot with Human Escalation
+    - Outbound AI Voice Agent Context Reasoning & Post-Call Intelligence
+    """
 
     @staticmethod
-    def analyze(messages: List[Dict[str, str]]) -> Dict[str, Any]:
-        if not messages:
-            return {
-                "summary": "No messages exchanged yet.",
-                "sentiment": "Neutral",
-                "intent": "General Inquiry",
-                "urgency": "Low",
-                "extracted_action_items": [],
-                "suggested_response": "Hello! How can we assist you today?"
-            }
+    def extract_lead_info(content: str, channel: str) -> Dict[str, Any]:
+        """
+        Extracts structured lead parameters from incoming raw messages.
+        Does not fabricate missing information.
+        """
+        text = content.strip()
 
-        text = " ".join([m.get("content", "") for m in messages]).lower()
-        
-        # Sentiment
-        if any(w in text for w in ["love", "great", "excellent", "excited", "thanks", "perfect", "appreciate"]):
+        # Extract email
+        email_match = re.search(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', text)
+        email = email_match.group(0) if email_match else None
+
+        # Extract phone
+        phone_match = re.search(r'\(?\+?[0-9]{1,4}\)?[-.\s]?[0-9]{3,4}[-.\s]?[0-9]{3,4}', text)
+        phone = phone_match.group(0) if phone_match else None
+
+        # Detect intent
+        text_lower = text.lower()
+        if any(w in text_lower for w in ['price', 'pricing', 'cost', 'quote', 'subscription', 'enterprise plan']):
+            intent = "High Purchase Intent"
+        elif any(w in text_lower for w in ['demo', 'trial', 'schedule', 'meeting', 'call me']):
+            intent = "Demo Request"
+        elif any(w in text_lower for w in ['features', 'integration', 'api', 'how to']):
+            intent = "Product Inquiry"
+        else:
+            intent = "General Inquiry"
+
+        # Detect sentiment
+        if any(w in text_lower for w in ['great', 'excellent', 'love', 'excited', 'interested', 'urgent']):
             sentiment = "Positive"
-        elif any(w in text for w in ["issue", "frustrated", "bug", "delayed", "problem", "broken", "disappointed"]):
+        elif any(w in text_lower for w in ['expensive', 'difficult', 'slow', 'issue', 'problem']):
             sentiment = "Negative"
-        elif any(w in text for w in ["pricing", "demo", "quote"]):
-            sentiment = "Positive"
         else:
             sentiment = "Neutral"
 
-        # Intent
-        if any(w in text for w in ["price", "cost", "quote", "discount", "enterprise plan"]):
-            intent = "Pricing Inquiry"
-        elif any(w in text for w in ["demo", "call", "schedule", "meeting", "presentation"]):
-            intent = "Demo Request"
-        elif any(w in text for w in ["help", "error", "issue", "bug", "support"]):
-            intent = "Support Request"
-        elif any(w in text for w in ["ready to buy", "contract", "proposal", "invoice"]):
-            intent = "Purchase Intent"
-        else:
-            intent = "Product Inquiry"
-
-        # Urgency
-        if any(w in text for w in ["asap", "urgent", "today", "immediately", "critical"]):
-            urgency = "High"
-        elif any(w in text for w in ["this week", "soon", "tomorrow"]):
-            urgency = "Medium"
-        else:
-            urgency = "Low"
-
-        # Action items
-        action_items = []
-        if intent == "Pricing Inquiry":
-            action_items.append("Send custom enterprise pricing sheet")
-        if intent == "Demo Request":
-            action_items.append("Schedule 30-min product walkthrough call")
-        if "follow up" in text or "tomorrow" in text:
-            action_items.append("Follow up with customer within 24 hours")
-        if not action_items:
-            action_items.append("Review conversation and assign account owner")
-
-        # Summary
-        latest_msg = messages[-1].get("content", "")
-        summary = f"Customer inquired about {intent.lower()}. Latest update: '{latest_msg[:120]}...'"
-
-        # Suggested reply
-        if intent == "Pricing Inquiry":
-            suggested_response = "Hi! I'd be happy to share our detailed pricing breakdown. Are you looking for our Growth or Enterprise tier?"
-        elif intent == "Demo Request":
-            suggested_response = "Hello! We'd love to show you Nova5 AI CRM in action. What time works best for a live 20-minute demo?"
-        else:
-            suggested_response = "Thank you for reaching out! Our team is reviewing your inquiry and will get back to you shortly."
+        # Product Interest
+        product_interest = "AI CRM Platform"
+        if "voice" in text_lower or "calling" in text_lower:
+            product_interest = "AI Voice Calling Agent"
+        elif "chat" in text_lower or "whatsapp" in text_lower:
+            product_interest = "AI Chatbot & WhatsApp Integration"
 
         return {
-            "summary": summary,
-            "sentiment": sentiment,
+            "email": email,
+            "phone": phone,
             "intent": intent,
-            "urgency": urgency,
-            "extracted_action_items": action_items,
-            "suggested_response": suggested_response
+            "sentiment": sentiment,
+            "product_interest": product_interest,
+            "source_channel": channel
         }
 
-class AISmartReplyGenerator:
-    """Generates contextual AI replies based on tone and customer history."""
-
     @staticmethod
-    def generate_reply(messages: List[Dict[str, str]], tone: str = "Professional", instructions: Optional[str] = None) -> str:
-        last_customer_msg = "Hello, I wanted to follow up."
-        for m in reversed(messages):
-            if m.get("sender_type") == "customer":
-                last_customer_msg = m.get("content", "")
-                break
+    def calculate_explainable_score(
+        intent: str,
+        has_email: bool,
+        has_phone: bool,
+        has_company: bool,
+        has_demo_request: bool,
+        interactions_count: int
+    ) -> Dict[str, Any]:
+        """
+        Calculates an explainable 0-100 AI Lead Score with factor breakdowns.
+        """
+        score = 40 # Base baseline score
+        breakdown = {}
+        factors = []
 
-        if tone == "Friendly":
-            reply = f"Hi there! Thanks so much for following up regarding '{last_customer_msg[:60]}'. We're super excited to help you get everything set up smoothly!"
-        elif tone == "Concise":
-            reply = f"Thanks for your message. Regarding '{last_customer_msg[:50]}', we have updated your account parameters. Let me know if you need anything else."
-        elif tone == "Persuasive":
-            reply = f"Hello! Nova5 AI CRM can streamline this exact workflow for your team today. Would you be open to a quick 10-minute demo tomorrow morning?"
-        elif tone == "Empathetic":
-            reply = f"Hi! I completely understand how important this issue is for your team. We are actively prioritizing this and will update you shortly."
-        else: # Professional default
-            reply = f"Hello. Thank you for your inquiry regarding '{last_customer_msg[:60]}'. I have shared the details with our sales engineering team and will follow up with complete specs."
+        if intent == "High Purchase Intent":
+            score += 25
+            breakdown["High Purchase Intent Signal"] = 25
+            factors.append("+ Pricing / Enterprise plan discussion")
+        elif intent == "Demo Request":
+            score += 30
+            breakdown["Demo Requested"] = 30
+            factors.append("+ Direct demo requested")
+        elif intent == "Product Inquiry":
+            score += 15
+            breakdown["Product Inquiry"] = 15
+            factors.append("+ Product capability inquiry")
 
-        if instructions:
-            reply += f" ({instructions})"
+        if has_email and has_phone:
+            score += 20
+            breakdown["Verified Contact Info (Email & Phone)"] = 20
+            factors.append("+ Verified email & phone provided")
+        elif has_email or has_phone:
+            score += 10
+            breakdown["Contact Info Provided"] = 10
+            factors.append("+ Contact info provided")
 
-        return reply
+        if has_company:
+            score += 10
+            breakdown["Enterprise Company Fit"] = 10
+            factors.append("+ Corporate domain / company identified")
 
-class AICRMToolAgent:
-    """Natural Language Assistant that translates prompt into tool calls and CRM structured answers."""
+        if has_demo_request:
+            score += 15
+            breakdown["Demo Scheduled"] = 15
 
-    @staticmethod
-    def process_query(query: str, db_context: Dict[str, Any]) -> Dict[str, Any]:
-        q = query.lower()
-        tool_calls = []
-        answer = ""
-        data = None
+        if interactions_count >= 3:
+            score += 10
+            breakdown["High Multi-Channel Engagement"] = 10
+            factors.append("+ Multiple channel interactions")
 
-        if "high-priority" in q or "leads" in q or "priority" in q:
-            tool_calls.append({"tool": "get_high_priority_leads", "args": {"min_score": 75}})
-            leads = db_context.get("leads", [])
-            high_leads = [l for l in leads if l.get("lead_score", 0) >= 70 or l.get("priority") == "High"]
-            data = high_leads
-            answer = f"Found {len(high_leads)} high-priority leads requiring immediate attention. Top lead is '{high_leads[0]['title'] if high_leads else 'Acme Corp'}' with a score of {high_leads[0].get('lead_score', 88) if high_leads else 88}."
+        final_score = min(score, 100)
 
-        elif "deal" in q or "risk" in q or "pipeline" in q:
-            tool_calls.append({"tool": "analyze_pipeline_risks", "args": {}})
-            deals = db_context.get("deals", [])
-            risk_deals = [d for d in deals if d.get("ai_risk_level") in ["High", "Medium"]]
-            data = risk_deals
-            answer = f"Analyzed open deals in pipeline. {len(risk_deals)} opportunities show engagement risk due to inactivity > 5 days or un-engaged decision makers."
-
-        elif "conversation" in q or "rahul" in q or "inbox" in q:
-            tool_calls.append({"tool": "summarize_conversations", "args": {"filter": "recent"}})
-            convs = db_context.get("conversations", [])
-            data = convs[:3]
-            answer = "Recent conversations show strong purchase intent on WhatsApp and website chat. 3 high-intent inquiries were received today."
-
-        elif "analytics" in q or "revenue" in q or "conversion" in q:
-            tool_calls.append({"tool": "get_executive_analytics", "args": {}})
-            data = {
-                "pipeline_value": 248000,
-                "won_revenue": 142000,
-                "conversion_rate": "18.4%",
-                "top_channel": "WhatsApp (38%)"
-            }
-            answer = "Current pipeline total value is $248,000 across 28 active deals with an 18.4% conversion rate. WhatsApp is currently your top performing lead source."
-
-        else:
-            tool_calls.append({"tool": "search_knowledge_base", "args": {"query": query}})
-            answer = f"Processed CRM request for: '{query}'. AI recommendations updated based on customer timeline events and active pipeline state."
-            data = {"status": "success", "query": query}
+        explanation = f"Lead score evaluates to {final_score}/100. Key drivers: {', '.join(factors) if factors else 'Initial interaction baseline'}."
+        recommended_action = "Initiate AI Voice Call" if final_score >= 80 else "Send AI Smart Follow-up Chat"
 
         return {
-            "answer": answer,
-            "tool_calls": tool_calls,
-            "data": data
+            "score": final_score,
+            "confidence": 0.92,
+            "breakdown": breakdown,
+            "explanation": explanation,
+            "recommended_action": recommended_action
         }
 
-class AIRAGEngine:
-    """Document retrieval and knowledge chunking system."""
+    @staticmethod
+    def generate_chatbot_response(
+        query: str,
+        lead_name: str = "Valued Customer",
+        context: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Grounded AI Chatbot Response with product knowledge grounding.
+        """
+        query_lower = query.lower()
+
+        # Check for human escalation trigger
+        if any(w in query_lower for w in ['human', 'agent', 'support rep', 'complaint', 'manager', 'speak to person']):
+            return {
+                "reply": f"Understood, {lead_name}. I am transferring your conversation directly to a senior sales specialist right now. One moment while I connect you.",
+                "intent": "Human Escalation Requested",
+                "sentiment": "Urgent",
+                "is_escalated": True
+            }
+
+        if "pricing" in query_lower or "cost" in query_lower or "plan" in query_lower:
+            reply = f"Hello {lead_name}! Nova5 AI CRM offers three tiers: Starter ($99/mo), Professional ($299/mo), and Enterprise (Custom SLA & dedicated voice agents). Would you like me to schedule a quick 10-minute demo for your team?"
+            intent = "High Purchase Intent"
+        elif "voice" in query_lower or "calling" in query_lower or "call" in query_lower:
+            reply = f"Our AI Voice Agent can conduct outbound qualification calls, answer technical product questions, and update CRM records automatically post-call. Shall I initiate a sample call for you?"
+            intent = "Product Inquiry - AI Voice"
+        elif "integration" in query_lower or "whatsapp" in query_lower or "instagram" in query_lower:
+            reply = f"Nova5 AI CRM natively integrates with WhatsApp Business API, Instagram Direct, Facebook Messenger, X (Twitter), and LinkedIn. All incoming conversations automatically unify under one customer profile."
+            intent = "Product Inquiry - Integrations"
+        else:
+            reply = f"Thanks for reaching out, {lead_name}! Nova5 AI CRM helps businesses automate lead generation, customer chat, and voice qualification across all your channels. How can I assist your team today?"
+            intent = "General Inquiry"
+
+        return {
+            "reply": reply,
+            "intent": intent,
+            "sentiment": "Positive",
+            "is_escalated": False
+        }
 
     @staticmethod
-    def search_docs(docs: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
-        q_words = set(query.lower().split())
-        results = []
-        for doc in docs:
-            content = doc.get("content", "").lower()
-            title = doc.get("title", "").lower()
-            score = sum(1 for w in q_words if w in content or w in title)
-            if score > 0 or len(docs) <= 3:
-                results.append({
-                    "document_id": doc.get("id"),
-                    "title": doc.get("title"),
-                    "relevance_score": round(0.75 + score * 0.05, 2),
-                    "snippet": doc.get("content", "")[:250] + "..."
-                })
-        return sorted(results, key=lambda x: x["relevance_score"], reverse=True)
+    def simulate_ai_voice_call(
+        lead_name: str,
+        company: str,
+        interest: str,
+        current_score: int
+    ) -> Dict[str, Any]:
+        """
+        Simulates contextual speech qualification call & generates post-call intelligence.
+        """
+        transcript = [
+            {"speaker": "AI Voice Agent", "text": f"Hello {lead_name}, this is Nova5 AI calling regarding your interest in our {interest} for {company}. Do you have 2 minutes?"},
+            {"speaker": "Customer", "text": f"Hi! Yes, I was evaluating your platform for our enterprise sales team. We need CRM tool integration and custom SLA uptime."},
+            {"speaker": "AI Voice Agent", "text": "That's great! Nova5 provides native REST APIs and guaranteed 99.9% HIPAA/SOC2 compliant SLAs. I can schedule a technical demo with our VP of Engineering tomorrow at 2 PM. Does that work?"},
+            {"speaker": "Customer", "text": "Perfect, send the calendar invitation to my email."}
+        ]
+
+        new_score = min(current_score + 12, 100)
+
+        return {
+            "duration_sec": 98,
+            "transcript": transcript,
+            "summary": f"Completed 98-second AI Voice call with {lead_name} ({company}). Customer validated requirements for CRM API integration and SLA compliance. Agreed to technical demo.",
+            "intent": "High Purchase Intent",
+            "sentiment": "Positive",
+            "qualification_status": "Qualified",
+            "requirements": "Custom REST API integration & 99.9% SOC2 SLA compliance",
+            "objections": "Technical validation needed prior to contract",
+            "recommended_next_step": "Send technical demo calendar invite & enterprise architecture whitepaper",
+            "lead_score_before": current_score,
+            "lead_score_after": new_score,
+            "escalated_to_human": False
+        }

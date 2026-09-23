@@ -4,34 +4,37 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Inbox, UserCheck, Users, Building2, Kanban,
-  Activity, Sparkles, Workflow, BarChart3, BookOpen,
-  Bot, Plug, LifeBuoy, GitMerge, ShieldCheck, Megaphone
+  LayoutDashboard, UserCheck, MessageSquare, PhoneCall,
+  Share2, Settings, Sparkles, CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { group: 'MAIN PLATFORM', items: [
-    { label: 'Overview', href: '/', icon: LayoutDashboard, color: 'text-sky-600' },
-    { label: 'Inbox', href: '/inbox', icon: Inbox, badge: '3', color: 'text-indigo-600' },
-    { label: 'Leads', href: '/leads', icon: UserCheck, badge: 'AI Scored', color: 'text-emerald-600' },
-    { label: 'Contacts', href: '/contacts', icon: Users, color: 'text-purple-600' },
-    { label: 'Companies', href: '/companies', icon: Building2, color: 'text-rose-600' },
-    { label: 'Deals & Pipeline', href: '/pipeline', icon: Kanban, color: 'text-amber-600' },
-    { label: 'Support Tickets', href: '/tickets', icon: LifeBuoy, badge: 'SLA', color: 'text-rose-600' },
-    { label: 'Identity Merge', href: '/identity', icon: GitMerge, color: 'text-indigo-600' },
-    { label: 'Activities', href: '/activities', icon: Activity, color: 'text-slate-600' },
-  ]},
-  { group: 'AI & INTELLIGENCE', items: [
-    { label: 'AI Outreach Agent', href: '/outreach', icon: Megaphone, highlight: true, badge: 'Voice/Seq', color: 'text-sky-600' },
-    { label: 'AI Intelligence', href: '/intelligence', icon: Sparkles, highlight: true, color: 'text-purple-600' },
-    { label: 'AI Governance', href: '/ai-governance', icon: ShieldCheck, highlight: true, color: 'text-rose-600' },
-    { label: 'Automations', href: '/automations', icon: Workflow, color: 'text-sky-600' },
-    { label: 'Analytics', href: '/analytics', icon: BarChart3, color: 'text-emerald-600' },
-    { label: 'Knowledge (RAG)', href: '/knowledge', icon: BookOpen, color: 'text-indigo-600' },
-    { label: 'AI Assistant', href: '/assistant', icon: Bot, highlight: true, color: 'text-purple-600' },
-    { label: 'Integrations', href: '/integrations', icon: Plug, color: 'text-amber-600' },
-  ]}
+  {
+    group: 'MAIN',
+    items: [
+      { label: 'Dashboard', href: '/', icon: LayoutDashboard, color: 'text-sky-600' },
+      { label: 'AI Leads', href: '/leads', icon: UserCheck, badge: 'Scored', color: 'text-emerald-600' },
+      { label: 'AI Chat', href: '/chat', icon: MessageSquare, badge: 'RAG', color: 'text-purple-600' },
+      { label: 'AI Calling', href: '/calling', icon: PhoneCall, badge: 'Voice', color: 'text-amber-600' },
+    ]
+  },
+  {
+    group: 'CHANNELS',
+    items: [
+      { label: 'WhatsApp', href: '/channels/whatsapp', icon: Share2, color: 'text-emerald-600' },
+      { label: 'Instagram', href: '/channels/instagram', icon: Share2, color: 'text-purple-600' },
+      { label: 'Facebook', href: '/channels/facebook', icon: Share2, color: 'text-sky-600' },
+      { label: 'X (Twitter)', href: '/channels/x', icon: Share2, color: 'text-slate-800' },
+      { label: 'LinkedIn', href: '/channels/linkedin', icon: Share2, color: 'text-indigo-600' },
+    ]
+  },
+  {
+    group: 'SETTINGS',
+    items: [
+      { label: 'Integrations', href: '/integrations', icon: Settings, color: 'text-sky-600' },
+    ]
+  }
 ];
 
 export function Sidebar() {
@@ -41,16 +44,16 @@ export function Sidebar() {
     <aside className="w-64 light-glass-sidebar flex flex-col justify-between shrink-0 h-screen sticky top-0 z-40 select-none shadow-sky-glass">
       <div>
         {/* Brand Header */}
-        <div className="h-16 px-6 flex items-center justify-between border-b border-white/60 bg-white/40">
+        <div className="h-16 px-6 flex items-center justify-between border-b border-white/80 bg-white/50">
           <Link href="/" className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-vibrant-sky-gradient flex items-center justify-center font-extrabold text-white shadow-sky-glow">
               N5
             </div>
             <div>
               <span className="font-extrabold text-base tracking-wide text-slate-900 flex items-center gap-1.5">
-                NOVA5 <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-900 font-bold border border-sky-400/40">AI CRM</span>
+                NOVA5 <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-900 font-extrabold border border-sky-400/40">AI CRM</span>
               </span>
-              <p className="text-[10px] text-slate-600 font-medium">Customer Intelligence Operating System</p>
+              <p className="text-[10px] text-slate-600 font-medium">Customer Acquisition Engine</p>
             </div>
           </Link>
         </div>
@@ -64,29 +67,29 @@ export function Sidebar() {
               </h4>
               <div className="space-y-1">
                 {group.items.map((item) => {
-                  const isActive = pathname === item.href;
+                  const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
                   const Icon = item.icon;
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        'flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group',
+                        'flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-75 group',
                         isActive
-                          ? 'bg-gradient-to-r from-sky-500/20 to-indigo-500/15 text-sky-900 border border-sky-400/50 shadow-sm font-bold'
-                          : 'text-slate-700 hover:text-slate-950 hover:bg-white/60 border border-transparent'
+                          ? 'bg-vibrant-sky-gradient text-white shadow-sky-glow font-bold'
+                          : 'text-slate-700 hover:text-slate-950 hover:bg-white/70 border border-transparent'
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <Icon className={cn('w-4 h-4 transition-transform group-hover:scale-110', isActive ? 'text-sky-600' : item.color)} />
+                        <Icon className={cn('w-4 h-4 transition-transform group-hover:scale-110', isActive ? 'text-white' : item.color)} />
                         <span>{item.label}</span>
                       </div>
                       {item.badge && (
                         <span className={cn(
                           'text-[10px] px-2 py-0.5 rounded-full font-bold font-mono',
-                          item.badge === 'AI Scored'
-                            ? 'bg-sky-500/20 text-sky-800 border border-sky-400/40'
-                            : 'bg-indigo-500/20 text-indigo-800 border border-indigo-400/40'
+                          isActive
+                            ? 'bg-white/30 text-white'
+                            : 'bg-sky-500/20 text-sky-900 border border-sky-400/40'
                         )}>
                           {item.badge}
                         </span>
@@ -101,7 +104,7 @@ export function Sidebar() {
       </div>
 
       {/* User Profile Footer */}
-      <div className="p-4 border-t border-white/60 bg-white/40">
+      <div className="p-4 border-t border-white/80 bg-white/50">
         <div className="flex items-center gap-3">
           <div className="relative">
             <img
@@ -113,7 +116,7 @@ export function Sidebar() {
           </div>
           <div className="flex-1 min-w-0">
             <h5 className="text-xs font-bold text-slate-900 truncate">Alex Vance</h5>
-            <p className="text-[11px] text-slate-600 truncate font-medium">Admin • Nova5 Org</p>
+            <p className="text-[11px] text-slate-600 truncate font-medium">Sales Admin • Nova5 Org</p>
           </div>
         </div>
       </div>
